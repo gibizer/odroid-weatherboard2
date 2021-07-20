@@ -1,0 +1,15 @@
+[Unit]
+Description=Weatherboard2 data collector and exporter service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/gibizer/weatherboard2-data-collector-and-ws-exporter
+ExecStart=/home/gibizer/weatherboard2-data-collector-and-ws-exporter/run_venv.sh
+KillMode=control-group
+TimeoutStopSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=weatherboard
+
+[Install]
+WantedBy=multi-user.target
