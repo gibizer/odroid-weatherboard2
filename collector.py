@@ -10,6 +10,7 @@ import BME280
 
 LOG = logging.getLogger('collector')
 
+
 class Device:
     def __init__(self):
         self.bme = BME280.BME280(
@@ -34,8 +35,7 @@ class Device:
             self.bme.set_power_mode(0x00)
             time.sleep(0.1)
             self.bme.set_power_mode(0x03)
-        
-        
+
         temp = self.bme.read_temperature()
         hum = self.bme.read_humidity()
         press = self.bme.read_pressure()
@@ -43,6 +43,7 @@ class Device:
         # put it in sleep
         self.bme.set_power_mode(0x00)
         return temp, hum, press
+
 
 class Store:
     def __init__(self, data, nr_of_data=2*24*60*2):

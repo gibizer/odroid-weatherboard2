@@ -2,14 +2,16 @@ import json
 import logging
 import signal
 import sys
+from typing import Optional
 
 import collector
 import ws
+import rest
 
 logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger("bme280_main")
 
-STORE = None
+STORE: Optional[collector.Store] = None
 
 
 def sigterm_handler(signum, frame):
@@ -19,6 +21,12 @@ def sigterm_handler(signum, frame):
             json.dump(STORE.read(), f)
             LOG.info("Data saved to disk before terminating")
     sys.exit(0)
+
+
+class FakeDevice:
+    @staticmethod
+    def read():
+        return 26.0, 50.0, 999.0
 
 
 def main():
@@ -32,7 +40,6 @@ def main():
         # no saved data
         data = []
 
-
     dev = collector.Device()
     store = collector.Store(data)
     global STORE
@@ -42,7 +49,7 @@ def main():
 
     signal.signal(signal.SIGTERM, sigterm_handler)
 
-    ws.start(store, port=55190)
+    rest.Wb2RestServer(store, port=55190).start()
     LOG.info("Exiting")
 
 

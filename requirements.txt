@@ -1,2 +1,4 @@
+bottle
+gunicorn
 simple-websocket-server
 smbus
