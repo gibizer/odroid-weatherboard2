@@ -130,9 +130,15 @@ let drawChart = function(data){
         .style("stroke", "steelblue")
         .attr("d", valueline2(data));
 
-    svg.append("path")        // Add the valueline3 path.
-        .style("stroke", "green")
-        .attr("d", valueline_press(data));
+    // check query parameters to see if pressure needs to be shown or not
+    const url_params = new URLSearchParams(window.location.search);
+    const press_enabled = url_params.get('press');
+    if(press_enabled === "1"){
+        svg.append("path")        // Add the valueline3 path.
+            .style("stroke", "green")
+            .attr("d", valueline_press(data));
+    }
+
 
     svg.append("g")            // Add the X Axis
         .attr("class", "x axis")
