@@ -5,22 +5,12 @@ import sys
 from typing import Optional
 
 import collector
-import ws
 import rest
 
 logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger("bme280_main")
 
 STORE: Optional[collector.Store] = None
-
-
-def sigterm_handler(signum, frame):
-    # lets save the data if we are being killed
-    if STORE:
-        with open("data.save", "w") as f:
-            json.dump(STORE.read(), f)
-            LOG.info("Data saved to disk before terminating")
-    sys.exit(0)
 
 
 class FakeDevice:
@@ -32,20 +22,14 @@ class FakeDevice:
 def main():
     LOG.info("Starting...")
 
-    # load saved data from disk
-    try:
-        with open("data.save", "r") as f:
-            data = json.load(f)            
-    except Exception:
-        # no saved data
-        data = []
-
     dev = collector.Device()
-    store = collector.Store(data)
-    global STORE
-    STORE = store
+    store = collector.Store()
+    store.load()
     c = collector.Collector(dev, store)
     c.start()
+
+    def sigterm_handler(signum, frame):
+        c.stop()
 
     signal.signal(signal.SIGTERM, sigterm_handler)
 

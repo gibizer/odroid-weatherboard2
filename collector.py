@@ -1,5 +1,6 @@
 import collections
 import datetime
+import gzip
 import json
 import logging
 import time
@@ -46,16 +47,32 @@ class Device:
 
 
 class Store:
-    def __init__(self, data, nr_of_data=2*24*60*2):
+    def __init__(self, nr_of_data=2*24*60*2):
         self.lock = threading.RLock()
-        self.deque = collections.deque(
-            data, maxlen=nr_of_data)
-        LOG.info(
-            f"Data store initialized with {len(self.deque)} data points")
+        self.deque = collections.deque(maxlen=nr_of_data)
 
     def store(self, data):
         with self.lock:
             self.deque.append(data)
+
+    def save(self):
+        with gzip.open("data.save.gz", "wt", encoding="utf-8") as f:
+            json.dump(self.read(), f)
+        LOG.info("Saved data to disk")
+
+    def load(self):
+        try:
+            with gzip.open("data.save.gz", "rt", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:
+            LOG.info("Loading no saved data due to " + str(e))
+            # no saved data
+            data = []
+        with self.lock:
+            self.deque.clear()
+            self.deque.extend(data)
+        LOG.info(
+            f"Data store initialized with {len(self.deque)} data points")
 
     def read(self):
         with self.lock:
@@ -68,17 +85,26 @@ class Collector:
         self.store = store
         self.thread = threading.Thread(target=self._run)
         self.last_saved = datetime.datetime.now()
+        self.stop_event = threading.Event()
 
     def start(self):
         self.thread.start()
         LOG.info("Collector started")
 
+    def stop(self):
+        self.stop_event.set()
+
     def _run(self):
         i = 0
         while True:
-            time.sleep(30)
+            stop = self.stop_event.wait(30)
+            if stop:
+                LOG.info("Stopping")
+                self.store.save()
+                return
+
             data = self.dev.read()
-            data =  (str(datetime.datetime.now()), *data)            
+            data = (str(datetime.datetime.now()), *data)
             self.store.store(data)
             i += 1
             # log temp to syslog every 5 minutes
@@ -87,9 +113,10 @@ class Collector:
                 LOG.info(
                     f"temp={data[1]}, hum={data[2]}, press={data[3]}")
             # save data to disk daily
-            if datetime.datetime.now() - self.last_saved > datetime.timedelta(days=1):
-                with open("data.save", "w") as f:
-                    json.dump(self.store.read(), f)
-                    LOG.info("Saved data to disk")
+            if (
+                    datetime.datetime.now() - self.last_saved
+                    > datetime.timedelta(days=1)
+            ):
+                self.store.save()
                 self.last_saved = datetime.datetime.now()
 
