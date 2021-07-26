@@ -78,7 +78,38 @@ var svg = d3.select("body")
 // newvalue= (max'-min')/(max-min)*(value-max)+max'
 const normalize = function(value, min, max, new_min, new_max){
     return (new_max - new_min) / (max - min) * (value - max) + new_max;
-}
+};
+
+const append_current_values_table = function(data){
+    const look_back = 10;
+
+    if (data.length < look_back){
+        return
+    }
+
+    // calculate some trend indicator for presusre
+    let back = data.slice(-1 * look_back);
+    let indicator = "";
+    for (let i = 1; i < look_back; i++) {
+        if (back[i - 1][3] === back[i][3]){
+           indicator = indicator + "-"
+        }
+        if (back[i - 1][3] < back[i][3]){
+           indicator = indicator + "↑"
+        }
+        if (back[i - 1][3] > back[i][3]){
+           indicator = indicator + "↓"
+        }
+    }
+
+    let last = data[data.length - 1];
+    let current = document.createElement("div");
+    current.innerHTML = "current: ";
+    current.innerHTML += "<br>" + Number.parseFloat(last[1]).toPrecision(4)+ "C";
+    current.innerHTML += "<br>" + Number.parseFloat(last[2]).toPrecision(4)+ "%";
+    current.innerHTML += "<br>" + Number.parseFloat(last[3] / 100).toPrecision(4)+ "hPa" + " " + indicator;
+    document.body.appendChild(current);
+};
 
 
 let drawChart = function(data){
@@ -96,13 +127,13 @@ let drawChart = function(data){
     // Scale the range of the data
     x.domain(d3.extent(data, function(d) { return d.date; }));
     y0.domain([d3.min(data, function(d) {
-                   return Math.min(d.temp); }) - 0.1,
+                   return d.temp }) - 0.1,
                d3.max(data, function(d) {
-                   return Math.max(d.temp); }) + 0.1]);
+                   return d.temp }) + 0.1]);
     y1.domain([d3.min(data, function(d) {
-                   return Math.min(d.hum); }) - 0.5,
+                   return d.hum }) - 0.5,
                d3.max(data, function(d) {
-                   return Math.max(d.hum); }) + 0.5]);
+                   return d.hum }) + 0.5]);
 
     let min_p = Math.min(...press);
     let max_p = Math.max(...press);
@@ -114,14 +145,7 @@ let drawChart = function(data){
         d.press = +normalize(d[3], min_p, max_p, min_h, max_h);
     });
 
-
-    let last = data[data.length - 1];
-    let current = document.createElement("div");
-    current.innerHTML = "current: ";
-    current.innerHTML += "<br>" + Number.parseFloat(last[1]).toPrecision(4)+ "C";
-    current.innerHTML += "<br>" + Number.parseFloat(last[2]).toPrecision(4)+ "%";
-    current.innerHTML += "<br>" + Number.parseFloat(last[3] / 100).toPrecision(4)+ "hPa";
-    document.body.appendChild(current);
+    append_current_values_table(data);
 
     svg.append("path")        // Add the valueline path.
         .attr("d", valueline(data));
