@@ -16,7 +16,7 @@ class Wb2RestServer:
 
     def start(self):
         bottle.run(
-            self.app, host='localhost', port=self.port)
+            self.app, host='0.0.0.0', port=self.port)
 
     def _setup_routes(self):
         @self.app.get('/measurements')
