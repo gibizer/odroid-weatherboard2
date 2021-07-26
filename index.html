@@ -74,41 +74,49 @@ var svg = d3.select("body")
         .attr("transform",
               "translate(" + margin.left + "," + margin.top + ")");
 
+// normalization:
+// newvalue= (max'-min')/(max-min)*(value-max)+max'
+const normalize = function(value, min, max, new_min, new_max){
+    return (new_max - new_min) / (max - min) * (value - max) + new_max;
+}
 
-var drawChart = function(data){
+
+let drawChart = function(data){
+    let press = []
+    let hum = []
     data.forEach(function(d) {
         d.date = parseDate(d[0].split('.')[0]);
         d.temp = +d[1];
         d.hum = +d[2];
-    });
 
+        press.push(d[3]);
+        hum.push(d[2]);
+    });
 
     // Scale the range of the data
     x.domain(d3.extent(data, function(d) { return d.date; }));
     y0.domain([d3.min(data, function(d) {
-                   return Math.min(d.temp); }) - 0.5,
+                   return Math.min(d.temp); }) - 0.1,
                d3.max(data, function(d) {
-                   return Math.max(d.temp); }) + 0.5]);
+                   return Math.max(d.temp); }) + 0.1]);
     y1.domain([d3.min(data, function(d) {
-                   return Math.min(d.hum); }) - 1,
+                   return Math.min(d.hum); }) - 0.5,
                d3.max(data, function(d) {
-                   return Math.max(d.hum); }) + 1]);
-    hum_min = y1.domain[0];
-    hum_max = y1.domain[1];
-    // normalization:
-    // newvalue= (max'-min')/(max-min)*(value-max)+max'
-    var normalize = function(value, dom_min, dom_max){
-        return 
-    }
+                   return Math.max(d.hum); }) + 0.5]);
 
+    let min_p = Math.min(...press);
+    let max_p = Math.max(...press);
+    let min_h = Math.min(...hum);
+    let max_h = Math.max(...hum);
+
+    // normalize pressure data to humidity range
     data.forEach(function(d) {
-        d.press = +((d[3] - 98700) / 20);
+        d.press = +normalize(d[3], min_p, max_p, min_h, max_h);
     });
 
 
-
     let last = data[data.length - 1];
-    var current = document.createElement("div");
+    let current = document.createElement("div");
     current.innerHTML = "current: ";
     current.innerHTML += "<br>" + Number.parseFloat(last[1]).toPrecision(4)+ "C";
     current.innerHTML += "<br>" + Number.parseFloat(last[2]).toPrecision(4)+ "%";
