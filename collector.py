@@ -103,7 +103,13 @@ class Collector:
                 self.store.save()
                 return
 
-            data = self.dev.read()
+            try:
+                data = self.dev.read()
+            except OSError as e:
+                LOG.info("ignoring: " + str(e))
+                self.stop_event.wait(5)
+                continue
+
             data = (str(datetime.datetime.now()), *data)
             self.store.store(data)
             i += 1
