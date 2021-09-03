@@ -47,7 +47,7 @@ var x = d3.time.scale().range([0, width]);
 var y0 = d3.scale.linear().range([height, 0]);
 var y1 = d3.scale.linear().range([height, 0]);
 
-var numberFormat = d3.format(".0");
+var numberFormat = d3.format(".1f");
 
 var xAxis = d3.svg.axis().scale(x)
     .orient("bottom").ticks(24)
