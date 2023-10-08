@@ -10,39 +10,54 @@ import BME280
 
 
 LOG = logging.getLogger('collector')
+TEMP_OFFSET = -1.0
 
 
 class Device:
     def __init__(self):
         self.bme = BME280.BME280(
             '/dev/i2c-1',
-            # forced mode would be better
+            # forced mode would be better but it seems
+            # that makes the measurements stuck on the same value
+            # for ever
             p_mode=0x03,
-            # 2x oversample
-            h_samp=0x02, p_samp=0x02, t_samp=0x02
+            # 4x oversample
+            h_samp=0x04, p_samp=0x04, t_samp=0x04
         )
-        # put it in sleep
-        self.bme.set_power_mode(0x00)
+        #self.bme.set_power_mode(0x03)
 
     def read(self):
         # wake up
-        self.bme.set_power_mode(0x03)
-        time.sleep(0.1)
+        #self.bme.set_power_mode(0x03)
+        #6time.sleep(0.5)
 
         press = self.bme.read_pressure()
 
-        if str(press) == "67638.19849463052":
+        if str(press).startswith("67638."):
             LOG.info("Device is in reset, restart it.")
+            # power cycle
             self.bme.set_power_mode(0x00)
-            time.sleep(0.1)
+            LOG.info("Wait after power down")
+            time.sleep(0.5)
+            # up
             self.bme.set_power_mode(0x03)
+            LOG.info("Wait after power up")
+            time.sleep(0.5)
+            # soft reset
+#            self.bme.set_power_mode(0xB6)
+#            LOG.info("Wait after soft reset")
+            time.sleep(1)
+            LOG.info("Raise to requeue collection")
+            raise IOError("Restarted the device")
+
 
         temp = self.bme.read_temperature()
+        temp = temp + TEMP_OFFSET
         hum = self.bme.read_humidity()
         press = self.bme.read_pressure()
 
         # put it in sleep
-        self.bme.set_power_mode(0x00)
+        #self.bme.set_power_mode(0x00)
         return temp, hum, press
 
 
@@ -105,7 +120,7 @@ class Collector:
 
             try:
                 data = self.dev.read()
-            except OSError as e:
+            except Exception as e:
                 LOG.info("ignoring: " + str(e))
                 self.stop_event.wait(5)
                 continue
